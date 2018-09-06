@@ -1,0 +1,11 @@
+include requirements.txt
+include test-requirements.txt
+include README.md
+include LICENSE
+include tox.ini
+include .testr.conf
+include .coveragerc
+include setup.py
+include tools/*
+recursive-include pytwistcli *.py
+
