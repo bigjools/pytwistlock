@@ -82,3 +82,14 @@ def find_packages(package_type, *args, **kwargs):
             return pkg_dict['pkgs']
 
     raise exceptions.NoPackages()
+
+
+def list_available_package_types(*args, **kwargs):
+    """Given the images data, return a list of package types for which
+    data is available.
+
+    One of image_id or image_tag must be specified.""
+
+    :params: See `find_image`
+    """
+    return [pkg_dict['pkgsType'] for pkg_dict in all_packages(*args, **kwargs)]

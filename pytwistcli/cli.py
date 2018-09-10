@@ -49,6 +49,8 @@ SUPPORTED_PACKAGE_TYPES = [
     'package',
     'python',
     'windows',
+
+    'list'  # Special type, lists available types in an image.
 ]
 
 
@@ -68,6 +70,12 @@ def display(display_type, images, search_spec):
         abort("{} is not a valid package type".format(display_type))
 
     image_spec = _get_image_spec(search_spec)
+    if display_type == 'list':
+        types = api.list_available_package_types(images, **image_spec)
+        if len(types) != 0:
+            click.echo(" ".join(types))
+        return
+
     try:
         pkgs = api.find_packages(display_type, images, **image_spec)
     except exceptions.NoPackages:
