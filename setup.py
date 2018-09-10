@@ -3,6 +3,7 @@ from setuptools import find_packages, setup
 
 install_reqs = [
     'click',
+    'requests',
 ]
 
 tests_require = [
@@ -32,4 +33,10 @@ setup(
     tests_require=tests_require,
     extras_require={'test': tests_require},
     zip_safe=False,
-    )
+    entry_points={
+      'console_scripts': [
+          'pytwistcli = pytwistcli.cli:main',
+      ]
+    }
+
+)
