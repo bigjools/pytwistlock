@@ -22,21 +22,10 @@
 # pytwistcli image search <searchspec> [os|python|node|etc]
 
 import click
-import sys
 
 from pytwistcli import api
+from pytwistcli import exceptions
 from pytwistcli import sources
-
-
-def url_from_context(ctx):
-    return ctx.find_root().params['twistlock_url']
-
-
-def userspec_from_context(ctx):
-    return dict(
-        username=ctx.find_root().params['twistlock_user'],
-        password=ctx.find_root().params['twistlock_password'],
-    )
 
 
 def userspec_from_params(user, password):
@@ -52,22 +41,42 @@ def abort(error):
     raise click.Abort()
 
 
-def _display(display_type, *args, **kwargs):
+SUPPORTED_PACKAGE_TYPES = [
+    'binary',
+    'gem',
+    'jar',
+    'nodejs',
+    'package',
+    'python',
+    'windows',
+]
+
+
+def _get_image_spec(image_id):
+    ID_PREFIX = 'sha256:'
+    image_spec = {}
+    if image_id.startswith(ID_PREFIX):
+        image_id = image_id.split(':', 1)[1]
+        image_spec['image_sha'] = image_id
+    else:
+        image_spec['image_tag'] = image_id
+    return image_spec
+
+
+def display(display_type, images, search_spec):
+    if display_type not in SUPPORTED_PACKAGE_TYPES:
+        abort("{} is not a valid package type".format(display_type))
+
+    image_spec = _get_image_spec(search_spec)
     try:
-        funcname = 'display_{}_packages'.format(display_type)
-        f = getattr(sys.modules[__name__], funcname)
-    except AttributeError:
-        abort("{} is not a valid package type")
-    f(*args, **kwargs)
-
-
-def display_os_packages(images, image_id):
-    image_id = image_id.lstrip('sha256:')
-    pkgs = api.os_packages(images, image_id)
+        pkgs = api.find_packages(display_type, images, **image_spec)
+    except exceptions.NoPackages:
+        abort("No packages found")
     for pkg in pkgs:
         print('{}\t{}\t{}\n'.format(
             pkg['name'], pkg['version'], pkg['license']
         ))
+
 
 
 @click.group()
@@ -89,7 +98,7 @@ main.add_command(image)
 @click.option(
     '--twistlock-password', envvar='TWISTLOCK_PASSWORD', required=True)
 @click.argument('searchspec')
-@click.argument('searchtype', type=click.Choice(['os']))
+@click.argument('searchtype', type=click.Choice(SUPPORTED_PACKAGE_TYPES))
 def search(
     twistlock_url, twistlock_user, twistlock_password, searchspec,
         searchtype):
@@ -102,13 +111,13 @@ def search(
     except Exception as e:
         abort(e)
 
-    _display(searchtype, images, searchspec)
+    display(searchtype, images, searchspec)
 
 
 @image.command()
 @click.argument('filename')
 @click.argument('image_id')
-@click.argument('searchtype', type=click.Choice(['os']))
+@click.argument('searchtype', type=click.Choice(SUPPORTED_PACKAGE_TYPES))
 def file(filename, image_id, searchtype):
     """Examine images from a local file."""
     try:
@@ -116,7 +125,7 @@ def file(filename, image_id, searchtype):
     except Exception as e:
         abort(e)
 
-    _display(searchtype, images, image_id)
+    display(searchtype, images, image_id)
 
 
 if __name__ == '__main__':

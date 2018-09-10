@@ -63,19 +63,22 @@ def all_packages(*args, **kwargs):
     return image['data']['packages']
 
 
-def os_packages(*args, **kwargs):
-    """Given the images data, return a list of OS packages in image
-    which can be identified with image_id, or image_tag.
+def find_packages(package_type, *args, **kwargs):
+    """Given the images data, return a list of packages in image
+    which can be identified with image_id, or image_tag, matching
+    the package type given.
 
     One of image_id or image_tag must be specified.
 
     :params: See `find_image`
+    :param package_type: One of the supported "pkgsType" returned in the
+        Twistlock image scan data. e.g. "packages", "nodejs", "python".
     :exception: exceptions.ImageNotFound
     :exception: exceptions.ParameterError
-    :exception: exceptions.NoOSPackages
+    :exception: exceptions.NoPackages
     """
     for pkg_dict in all_packages(*args, **kwargs):
-        if pkg_dict['pkgsType'] == 'package':
+        if pkg_dict['pkgsType'] == package_type:
             return pkg_dict['pkgs']
 
-    raise exceptions.NoOSPackages()
+    raise exceptions.NoPackages()

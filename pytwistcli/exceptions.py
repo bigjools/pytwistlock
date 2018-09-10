@@ -29,5 +29,5 @@ class ImageNotFound(PyTwistCliException):
     """Requested image cannot be found."""
 
 
-class NoOSPackages(PyTwistCliException):
-    """No OS packages in an image."""
+class NoPackages(PyTwistCliException):
+    """No packages of requested type in an image."""
