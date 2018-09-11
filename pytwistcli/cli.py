@@ -134,7 +134,8 @@ def search(
     except Exception as e:
         abort(e)
 
-    display_packages(searchtype, images, searchspec)
+    if images is not None:
+        display_packages(searchtype, images, searchspec)
 
 
 @image.command()
