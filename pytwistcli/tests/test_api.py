@@ -189,7 +189,7 @@ class TestAPI(PyTwistcliTestCase):
         images = self.get_response_template(image_tag1=tag, **packages)
         return images, tag, packages
 
-    def assertOSPackages(self, packages, observed_pkg_data):
+    def assertPackages(self, packages, observed_pkg_data):
         expected_packages = [
             dict(
                 name=packages['package1name'],
@@ -216,9 +216,18 @@ class TestAPI(PyTwistcliTestCase):
         observed_packages = api.all_packages(images, image_tag=tag)
         for pkg_data in observed_packages:
             if pkg_data['pkgsType'] == 'package':
-                self.assertOSPackages(packages, pkg_data['pkgs'])
+                self.assertPackages(packages, pkg_data['pkgs'])
 
     def test_find_packages_returns_only_requested_packages(self):
         images, tag, packages = self.make_image_with_os_packages()
         observed_packages = api.find_packages('package', images, image_tag=tag)
-        self.assertOSPackages(packages, observed_packages)
+        self.assertPackages(packages, observed_packages)
+
+    def test_list_available_package_types_lists_all_package_types(self):
+        images, tag, packages = self.make_image_with_os_packages()
+        list_of_types = api.list_available_package_types(images, image_tag=tag)
+
+        # TODO: Using fixed sample data is bad; make a way to inject
+        # different packages in the response data template.
+        expected = ['package', 'python', 'nodejs']
+        self.assertEqual(sorted(expected), sorted(list_of_types))
