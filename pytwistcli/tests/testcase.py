@@ -50,23 +50,7 @@ response_template = string.Template('''
               "packages": [
               {
                   "pkgsType": "package",
-                  "pkgs": [
-                  {
-                      "version": "${package1version}",
-                      "name": "${package1name}",
-                      "license": "${package1license}"
-                  },
-                  {
-                      "version": "${package2version}",
-                      "name": "${package2name}",
-                      "license": "${package2license}"
-                  },
-                  {
-                      "version": "${package3version}",
-                      "name": "${package3name}",
-                      "license": "${package3license}"
-                  }
-                ]
+                  "pkgs": ${package}
               },
               {
                   "pkgsType": "nodejs",
@@ -91,15 +75,6 @@ _template_args = {
     'image_sha256': None,
     'image_tag1': None,
     'image_tag2': None,
-    'package1version': None,
-    'package1name': None,
-    'package1license': None,
-    'package2version': None,
-    'package2name': None,
-    'package2license': None,
-    'package3version': None,
-    'package3name': None,
-    'package3license': None,
 }
 
 
@@ -109,10 +84,6 @@ class PyTwistcliTestCase(testtools.TestCase):
     factory = factory
 
     def get_response_template(self, **kwargs):
-        # Some day it would be better to take a list of package details to
-        # add and repeatedly insert a tempalte into the response, but today
-        # is not that day.
-
         # Populate template with default random values where not provided by
         # the caller.
         template_args = _template_args.copy()
@@ -121,30 +92,37 @@ class PyTwistcliTestCase(testtools.TestCase):
                 template_args[key] = factory.make_string(key)
             else:
                 template_args[key] = kwargs[key]
+
+        # Package is a special case as its default must be an empty
+        # list.
+        if 'package' in kwargs:
+            template_args['package'] = json.dumps(kwargs['package'])
+        else:
+            template_args['package'] = []
+
         string_response = response_template.substitute(**template_args)
         return json.loads(string_response)
 
-    def make_image_with_os_packages(self):
-        tag = factory.make_string("tag")
-        packages = dict(
-            package1name=factory.make_string(),
-            package1version=factory.make_string(),
-            package1license=factory.make_string(),
-            package2name=factory.make_string(),
-            package2version=factory.make_string(),
-            package2license=factory.make_string(),
-            package3name=factory.make_string(),
-            package3version=factory.make_string(),
-            package3license=factory.make_string(),
-        )
+    def make_package_list(self, num_packages=3):
+        packages = []
+        for i in range(0, num_packages):
+            p = dict(
+                name=factory.make_string(),
+                version=factory.make_string(),
+                license=factory.make_string(),
+            )
+            packages.append(p)
+        return packages
 
-        images = self.get_response_template(image_tag1=tag, **packages)
+    def make_image_with_os_packages(self, num_packages=3):
+        tag = factory.make_string("tag")
+        packages = self.make_package_list(num_packages)
+        images = self.get_response_template(image_tag1=tag, package=packages)
         return images, tag, packages
 
-    def make_test_file(self, *args, **kwargs):
-        data = self.get_response_template(*args, **kwargs)
+    def make_test_file(self, images):
         tempdir = self.useFixture(fixtures.TempDir()).path
         data_file = os.path.join(tempdir, factory.make_string("testinput"))
         with open(data_file, "w") as f:
-            f.write(json.dumps(data))
+            f.write(json.dumps(images))
         return data_file

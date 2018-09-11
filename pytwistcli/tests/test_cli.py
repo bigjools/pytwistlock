@@ -41,25 +41,16 @@ class TestCLI(PyTwistcliTestCase):
         return out, err, proc.returncode
 
     def test_returns_packages_from_file_search(self):
-        # foo
-        images, tag, packages = self.make_image_with_os_packages()
-        input_file = self.make_test_file(image_tag1=tag, **packages)
+        images, tag, packages = self.make_image_with_os_packages(
+            num_packages=3)
+        input_file = self.make_test_file(images)
         args = 'image file {filename} {searchspec} package'.format(
             filename=input_file, searchspec=tag)
         out, err, code = self._run(args)
 
         self.assertEqual(0, code, err)
 
-        # I hate myself.
-        p_list = {
-            packages['package1name']:
-                (packages['package1version'], packages['package1license']),
-            packages['package2name']:
-                (packages['package2version'], packages['package2license']),
-            packages['package3name']:
-                (packages['package3version'], packages['package3license'])
-        }
-        sorted_names = sorted(p_list)
+        p_sorted = sorted(packages, key=lambda t: t['name'])
         expected = textwrap.dedent("""\
             NAME       VERSION    LICENSE
             <BLANKLINE>
@@ -67,12 +58,12 @@ class TestCLI(PyTwistcliTestCase):
             {} {} {}
             {} {} {}
         """.format(
-            sorted_names[0],
-            p_list[sorted_names[0]][0], p_list[sorted_names[0]][1],
-            sorted_names[1],
-            p_list[sorted_names[1]][0], p_list[sorted_names[1]][1],
-            sorted_names[2],
-            p_list[sorted_names[2]][0], p_list[sorted_names[2]][1],
+            p_sorted[0]['name'],
+            p_sorted[0]['version'], p_sorted[0]['license'],
+            p_sorted[1]['name'],
+            p_sorted[1]['version'], p_sorted[1]['license'],
+            p_sorted[2]['name'],
+            p_sorted[2]['version'], p_sorted[2]['license'],
             ))
         u_out = out.decode('utf-8')
         self.assertThat(

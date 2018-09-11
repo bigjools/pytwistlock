@@ -72,39 +72,17 @@ class TestAPI(PyTwistcliTestCase):
         self.expectThat(image['image']['RepoTags'], Contains(tag))
         self.expectThat(image['image']['RepoTags'], Contains(other_tag))
 
-    def assertPackages(self, packages, observed_pkg_data):
-        expected_packages = [
-            dict(
-                name=packages['package1name'],
-                version=packages['package1version'],
-                license=packages['package1license'],
-            ),
-            dict(
-                name=packages['package2name'],
-                version=packages['package2version'],
-                license=packages['package2license'],
-            ),
-            dict(
-                name=packages['package3name'],
-                version=packages['package3version'],
-                license=packages['package3license'],
-            ),
-        ]
-        # This works without sorting as it relies on the
-        # package ordering in the returned data.
-        self.expectThat(observed_pkg_data, Equals(expected_packages))
-
     def test_all_packages_returns_all_packages(self):
         images, tag, packages = self.make_image_with_os_packages()
         observed_packages = api.all_packages(images, image_tag=tag)
         for pkg_data in observed_packages:
             if pkg_data['pkgsType'] == 'package':
-                self.assertPackages(packages, pkg_data['pkgs'])
+                self.expectThat(pkg_data['pkgs'], Equals(packages))
 
     def test_find_packages_returns_only_requested_packages(self):
         images, tag, packages = self.make_image_with_os_packages()
         observed_packages = api.find_packages('package', images, image_tag=tag)
-        self.assertPackages(packages, observed_packages)
+        self.assertThat(observed_packages, Equals(packages))
 
     def test_list_available_package_types_lists_all_package_types(self):
         images, tag, packages = self.make_image_with_os_packages()
