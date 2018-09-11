@@ -29,6 +29,7 @@ from pytwistcli import sources
 
 
 def userspec_from_params(user, password):
+    """Given username and password, return a dict containing them."""
     return dict(
         username=user,
         password=password,
@@ -55,6 +56,7 @@ SUPPORTED_PACKAGE_TYPES = [
 
 
 def _get_image_spec(image_id):
+    """Get kwargs suitable for api.find_image()"""
     ID_PREFIX = 'sha256:'
     image_spec = {}
     if image_id.startswith(ID_PREFIX):
@@ -66,6 +68,14 @@ def _get_image_spec(image_id):
 
 
 def display_packages(display_type, images, search_spec):
+    """Print to stdout package information.
+
+    :param display_type: One of the Twistlock supported package type
+        specifiers. See cli.SUPPORTED_PACKAGE_TYPES.
+    :param images: Images data in json format.
+    :param search_spec: Any search criteria as recognised by the Twistlock
+        server.
+    """
     if display_type not in SUPPORTED_PACKAGE_TYPES:
         abort("{} is not a valid package type".format(display_type))
 
@@ -109,6 +119,7 @@ def main():
 
 @click.group()
 def image():
+    """Retrieve information about images."""
     pass
 
 
