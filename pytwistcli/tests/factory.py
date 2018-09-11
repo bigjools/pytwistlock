@@ -15,11 +15,6 @@
 
 """Factory functions and classes for tests."""
 
-__metaclass__ = type
-__all__ = [
-    'factory',
-    ]
-
 try:
     from itertools import imap
 except ImportError:

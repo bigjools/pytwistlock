@@ -18,9 +18,6 @@
 """This module contains tests for callable API functions."""
 
 
-import json
-from string import Template
-import testtools
 from testtools.matchers import (
     Contains,
     Equals,
@@ -29,104 +26,7 @@ from testtools.matchers import (
 from pytwistcli import api
 from pytwistcli import exceptions
 from pytwistcli.tests.factory import factory
-
-
-# This is a partial representation of the current response as documented at
-# https://docs.twistlock.com/docs/latest/api/api_reference.html#images_get
-# I am assured it won't change any time soon.
-response_template = Template('''
-{
-    "images": [
-    {
-        "hostname": "${hostname}",
-        "scanTime": "${scantime}",
-        "info": {
-          "image": {
-              "ID": "sha256:${image_sha256}",
-              "RepoTags": [
-                  "${image_tag1}",
-                  "${image_tag2}"
-              ],
-          "Many more things": "omitted"
-          },
-          "complianceVulnerabilities": [],
-          "allCompliance": {},
-          "cveVulnerabilities": [],
-          "data": {
-              "binaries": [],
-              "packages": [
-              {
-                  "pkgsType": "package",
-                  "pkgs": [
-                  {
-                      "version": "${package1version}",
-                      "name": "${package1name}",
-                      "license": "${package1license}"
-                  },
-                  {
-                      "version": "${package2version}",
-                      "name": "${package2name}",
-                      "license": "${package2license}"
-                  },
-                  {
-                      "version": "${package3version}",
-                      "name": "${package3name}",
-                      "license": "${package3license}"
-                  }
-                ]
-              },
-              {
-                  "pkgsType": "nodejs",
-                  "pkgs": []
-              },
-              {
-                  "pkgsType": "python",
-                  "pkgs": []
-              }
-              ],
-              "files": null
-          }
-        }
-    }
-    ]
-}
-''')
-
-_template_args = {
-    'hostname': None,
-    'scantime': None,
-    'image_sha256': None,
-    'image_tag1': None,
-    'image_tag2': None,
-    'package1version': None,
-    'package1name': None,
-    'package1license': None,
-    'package2version': None,
-    'package2name': None,
-    'package2license': None,
-    'package3version': None,
-    'package3name': None,
-    'package3license': None,
-}
-
-
-class PyTwistcliTestCase(testtools.TestCase):
-    """Base test class containing helpers."""
-    def get_response_template(self, **kwargs):
-        # Some day it would be better to take a list of package details to
-        # add and repeatedly insert a tempalte into the response, but today
-        # is not that day.
-
-        # Populate template with default random values where not provided by
-        # the caller.
-        template_args = _template_args.copy()
-        for key in template_args:
-            if kwargs.get(key, None) is None:
-                template_args[key] = factory.make_string(key)
-            else:
-                template_args[key] = kwargs[key]
-        string_response = response_template.substitute(**template_args)
-        return json.loads(string_response)
+from pytwistcli.tests.testcase import PyTwistcliTestCase
 
 
 class TestAPI(PyTwistcliTestCase):
