@@ -72,23 +72,6 @@ class TestAPI(PyTwistcliTestCase):
         self.expectThat(image['image']['RepoTags'], Contains(tag))
         self.expectThat(image['image']['RepoTags'], Contains(other_tag))
 
-    def make_image_with_os_packages(self):
-        tag = factory.make_string("tag")
-        packages = dict(
-            package1name=factory.make_string(),
-            package1version=factory.make_string(),
-            package1license=factory.make_string(),
-            package2name=factory.make_string(),
-            package2version=factory.make_string(),
-            package2license=factory.make_string(),
-            package3name=factory.make_string(),
-            package3version=factory.make_string(),
-            package3license=factory.make_string(),
-        )
-
-        images = self.get_response_template(image_tag1=tag, **packages)
-        return images, tag, packages
-
     def assertPackages(self, packages, observed_pkg_data):
         expected_packages = [
             dict(

@@ -15,7 +15,9 @@
 
 """Base test class and utilities."""
 
+import fixtures
 import json
+import os
 import string
 import testtools
 
@@ -121,3 +123,28 @@ class PyTwistcliTestCase(testtools.TestCase):
                 template_args[key] = kwargs[key]
         string_response = response_template.substitute(**template_args)
         return json.loads(string_response)
+
+    def make_image_with_os_packages(self):
+        tag = factory.make_string("tag")
+        packages = dict(
+            package1name=factory.make_string(),
+            package1version=factory.make_string(),
+            package1license=factory.make_string(),
+            package2name=factory.make_string(),
+            package2version=factory.make_string(),
+            package2license=factory.make_string(),
+            package3name=factory.make_string(),
+            package3version=factory.make_string(),
+            package3license=factory.make_string(),
+        )
+
+        images = self.get_response_template(image_tag1=tag, **packages)
+        return images, tag, packages
+
+    def make_test_file(self, *args, **kwargs):
+        data = self.get_response_template(*args, **kwargs)
+        tempdir = self.useFixture(fixtures.TempDir()).path
+        data_file = os.path.join(tempdir, factory.make_string("testinput"))
+        with open(data_file, "w") as f:
+            f.write(data)
+        return data_file
