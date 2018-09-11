@@ -146,5 +146,5 @@ class PyTwistcliTestCase(testtools.TestCase):
         tempdir = self.useFixture(fixtures.TempDir()).path
         data_file = os.path.join(tempdir, factory.make_string("testinput"))
         with open(data_file, "w") as f:
-            f.write(data)
+            f.write(json.dumps(data))
         return data_file
