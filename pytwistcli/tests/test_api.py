@@ -218,7 +218,7 @@ class TestAPI(PyTwistcliTestCase):
             if pkg_data['pkgsType'] == 'package':
                 self.assertOSPackages(packages, pkg_data['pkgs'])
 
-    def test_os_packages_returns_only_os_packages(self):
+    def test_find_packages_returns_only_requested_packages(self):
         images, tag, packages = self.make_image_with_os_packages()
-        observed_packages = api.os_packages(images, image_tag=tag)
+        observed_packages = api.find_packages('package', images, image_tag=tag)
         self.assertOSPackages(packages, observed_packages)
