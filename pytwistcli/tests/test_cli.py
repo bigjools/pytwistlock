@@ -41,7 +41,7 @@ class TestCLI(PyTwistcliTestCase):
         return out, err, proc.returncode
 
     def test_returns_packages_from_file_search(self):
-        images, tag, packages = self.make_image_with_os_packages(
+        images, tag, packages = self.factory.make_image_with_os_packages(
             num_packages=3)
         input_file = self.make_test_file(images)
         args = 'image file {filename} {searchspec} package'.format(
