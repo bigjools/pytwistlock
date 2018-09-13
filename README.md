@@ -44,6 +44,18 @@ details. You can do this in two different ways:
  - Set environment variarbles `TWISTLOCK_URL`, `TWISTLOCK_PASSWORD`, and
    `TWISTLOCK_USER`
 
+ `pytwistcli image save data.json myproject/container:latest`
+
+ Will save the data for myproject/container:latest to the file
+ data.json. The search spec can also be anything matching multiple
+ images, resulting in a data file containing multiple images.
+
+ `pytwistcli image file --list-images <file>`
+ `pytwistcli image search --list-images <searchspec>`
+
+ Will show all images either in a file or on the server that match the
+ search spec.
+
 
 ## Running tests
 `tox`
