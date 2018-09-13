@@ -49,7 +49,7 @@ response_template = string.Template('''
           "allCompliance": {},
           "cveVulnerabilities": [],
           "data": {
-              "binaries": [],
+              "binaries": ${binaries},
               "packages": [
               {
                   "pkgsType": "package",
@@ -77,6 +77,7 @@ _template_args = {
     'image_sha256': None,
     'image_tag': None,
 }
+_template_empty_list_defaults = ('package', 'binaries')
 
 
 class Factory:
@@ -98,12 +99,13 @@ class Factory:
             else:
                 template_args[key] = kwargs[key]
 
-        # Package is a special case as its default must be an empty
-        # list.
-        if 'package' in kwargs:
-            template_args['package'] = json.dumps(kwargs['package'])
-        else:
-            template_args['package'] = []
+        # Special cases where defaults must be an empty list.
+        _template_empty_list_defaults = ('package', 'binaries')
+        for default in _template_empty_list_defaults:
+            if default in kwargs:
+                template_args[default] = json.dumps(kwargs[default])
+            else:
+                template_args[default] = []
 
         string_response = response_template.substitute(**template_args)
         return json.loads(string_response)
@@ -119,11 +121,29 @@ class Factory:
             packages.append(p)
         return packages
 
+    def make_binaries_list(self, num_binaries=3):
+        binaries = []
+        for i in range(0, num_binaries):
+            b = dict(
+                name=self.make_string("name"),
+                path=self.make_string("path"),
+                md5=self.make_string("md5"),
+                cveCount=random.randint(0, 10),  # nosec
+            )
+            binaries.append(b)
+        return binaries
+
     def make_image_with_os_packages(self, num_packages=3):
         tag = self.make_string("tag")
         packages = self.make_package_list(num_packages)
         images = self.get_response_template(image_tag=tag, package=packages)
         return images, tag, packages
+
+    def make_image_with_binaries(self, num_binaries=3):
+        tag = self.make_string("tag")
+        binaries = self.make_binaries_list(num_binaries)
+        images = self.get_response_template(image_tag=tag, binaries=binaries)
+        return images, tag, binaries
 
 
 # Factory is a singleton.

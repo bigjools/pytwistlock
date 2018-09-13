@@ -87,6 +87,12 @@ class TestAPI(PyTwistcliTestCase):
         expected = ['package', 'python', 'nodejs']
         self.assertEqual(sorted(expected), sorted(list_of_types))
 
+    def test_find_binaries_returns_binaries_for_image(self):
+        images, tag, binaries = self.factory.make_image_with_binaries(
+            num_binaries=3)
+        observed_binaries = api.find_binaries(images, image_tag=tag)
+        self.assertThat(observed_binaries, Equals(binaries))
+
     def test_all_image_ids_lists_all_ids_and_tags(self):
         sha1 = factory.make_string("sha1")
         sha2 = factory.make_string("sha2")

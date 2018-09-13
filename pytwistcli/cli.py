@@ -86,6 +86,9 @@ def display_packages(display_type, images, search_spec):
             click.echo(" ".join(types))
         return
 
+    if display_type == 'binary':
+        return display_binaries(images, image_spec)
+
     try:
         pkgs = api.find_packages(display_type, images, **image_spec)
     except exceptions.NoPackages:
@@ -110,6 +113,28 @@ def display_packages(display_type, images, search_spec):
                 name=pkg['name'], name_w=name_w,
                 version=pkg['version'], ver_w=ver_w,
                 license=pkg['license'], license_w=license_w))
+
+
+def display_binaries(images, image_spec):
+    """Print to stdout the binaries for an image.
+
+    :param images: Images data in json format.
+    :param image_spec: dict as returned by _get_image_spec.
+    """
+    binaries = api.find_binaries(images, **image_spec)
+
+    # Work out column width.
+    path_w = max([len(binary['path']) for binary in binaries])
+
+    print('{path:<{path_w}} {cveCount:<10}\n'.format(
+        path='PATH', path_w=path_w,
+        cveCount='CVE COUNT',
+    ))
+    for binary in binaries:
+        print('{path:<{path_w}} {cveCount:<10}'.format(
+            path=binary['path'], path_w=path_w,
+            cveCount=binary['cveCount'],
+        ))
 
 
 @click.group()

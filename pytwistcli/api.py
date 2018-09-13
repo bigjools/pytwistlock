@@ -101,6 +101,31 @@ def find_packages(package_type, *args, **kwargs):
     raise exceptions.NoPackages()
 
 
+def find_binaries(*args, **kwargs):
+    """Given images data, return a list of dicts containing details of
+    all binaries in the image which can be identified with image_id or
+    image_tag.
+
+    One of image_id or image_tag must be specified.
+
+    :params: See `find_image`
+    :exception: exceptions.ImageNotFound
+    :exception: exceptions.ParameterError
+    :exception: exceptions.NoPackages
+
+    :return: A list of dicts:
+        As per the Twistlock API, each dict takes the form:
+        {
+            name: 'binary name',
+            path: 'full path to the binary including the name'
+            md5: 'md5 hash for the binary'
+            cveCount: 'Number of CVEs reported for the binary'
+        }
+    """
+    image = find_image(*args, **kwargs)
+    return image['data']['binaries']
+
+
 def list_available_package_types(*args, **kwargs):
     """Given the images data, return a list of package types for which
     data is available.
