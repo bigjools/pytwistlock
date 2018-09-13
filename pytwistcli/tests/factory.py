@@ -33,19 +33,17 @@ import string
 # https://docs.twistlock.com/docs/latest/api/api_reference.html#images_get
 # I am assured it won't change any time soon.
 response_template = string.Template('''
-{
-    "images": [
+[
     {
         "hostname": "${hostname}",
         "scanTime": "${scantime}",
         "info": {
-          "image": {
-              "ID": "sha256:${image_sha256}",
-              "RepoTags": [
-                  "${image_tag1}",
-                  "${image_tag2}"
-              ],
-          "Many more things": "omitted"
+          "id": "sha256:${image_sha256}",
+          "repoTag": {
+            "registry": "",
+            "repo": "myregistry/foo",
+            "tag": "${image_tag}",
+            "digest": ""
           },
           "complianceVulnerabilities": [],
           "allCompliance": {},
@@ -70,16 +68,14 @@ response_template = string.Template('''
           }
         }
     }
-    ]
-}
+]
 ''')
 
 _template_args = {
     'hostname': None,
     'scantime': None,
     'image_sha256': None,
-    'image_tag1': None,
-    'image_tag2': None,
+    'image_tag': None,
 }
 
 
@@ -126,7 +122,7 @@ class Factory:
     def make_image_with_os_packages(self, num_packages=3):
         tag = self.make_string("tag")
         packages = self.make_package_list(num_packages)
-        images = self.get_response_template(image_tag1=tag, package=packages)
+        images = self.get_response_template(image_tag=tag, package=packages)
         return images, tag, packages
 
 

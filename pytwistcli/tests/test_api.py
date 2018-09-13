@@ -19,7 +19,6 @@
 
 
 from testtools.matchers import (
-    Contains,
     Equals,
 )
 
@@ -61,16 +60,13 @@ class TestAPI(PyTwistcliTestCase):
         images = self.factory.get_response_template(image_sha256=sha)
         image = api.find_image(images, image_sha=sha)
         expected_id = 'sha256:{}'.format(sha)
-        self.assertEqual(expected_id, image['image']['ID'])
+        self.assertEqual(expected_id, image['id'])
 
     def test_find_image_by_tag_returns_correct_image_data(self):
         tag = factory.make_string("tag")
-        other_tag = factory.make_string("tag")
-        images = self.factory.get_response_template(
-            image_tag1=tag, image_tag2=other_tag)
+        images = self.factory.get_response_template(image_tag=tag)
         image = api.find_image(images, image_tag=tag)
-        self.expectThat(image['image']['RepoTags'], Contains(tag))
-        self.expectThat(image['image']['RepoTags'], Contains(other_tag))
+        self.expectThat(image['repoTag']['tag'], Equals(tag))
 
     def test_all_packages_returns_all_packages(self):
         images, tag, packages = self.factory.make_image_with_os_packages()

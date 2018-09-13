@@ -41,11 +41,14 @@ def find_image(images, image_sha=None, image_tag=None):
         raise exceptions.ParameterError(
             "Only one of image_sha or image_tag may be specified")
 
-    for data in images['images']:
+    if images is None:
+        raise exceptions.ImageNotFound()
+
+    for data in images:
         info = data['info']
-        if info['image']['ID'] == 'sha256:{}'.format(image_sha):
+        if info['id'] == 'sha256:{}'.format(image_sha):
             return info
-        if image_tag in info['image']['RepoTags']:
+        if image_tag == info['repoTag']['tag']:
             return info
 
     raise exceptions.ImageNotFound()
