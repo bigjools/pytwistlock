@@ -145,8 +145,15 @@ def search(
     except Exception as e:
         abort(e)
 
-    if images is not None:
-        display_packages(searchtype, images, searchspec)
+    if images is None:
+        return
+
+    if len(images) > 1:
+        click.echo("Multiple images match: {}".format(
+            api.all_image_ids(images)))
+        return
+
+    display_packages(searchtype, images, searchspec)
 
 
 @image.command()

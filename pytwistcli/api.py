@@ -66,6 +66,20 @@ def all_packages(*args, **kwargs):
     return image['data']['packages']
 
 
+def all_image_ids(images):
+    """Given images data, return a dict of all image IDs therein.
+
+    :param images: images data from Twistlock, decoded from json
+    :return: A dict whose keys are the IDs of the images, and values are
+        the tag for that image (if present)
+    """
+    results = {}
+    for image in images:
+        info = image['info']
+        results[info['id']] = info['repoTag']['tag']
+    return results
+
+
 def find_packages(package_type, *args, **kwargs):
     """Given the images data, return a list of packages in image
     which can be identified with image_id, or image_tag, matching

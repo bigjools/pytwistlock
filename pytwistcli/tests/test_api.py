@@ -84,7 +84,24 @@ class TestAPI(PyTwistcliTestCase):
         images, tag, packages = self.factory.make_image_with_os_packages()
         list_of_types = api.list_available_package_types(images, image_tag=tag)
 
-        # TODO: Using fixed sample data is bad; make a way to inject
-        # different packages in the response data template.
         expected = ['package', 'python', 'nodejs']
         self.assertEqual(sorted(expected), sorted(list_of_types))
+
+    def test_all_image_ids_lists_all_ids_and_tags(self):
+        sha1 = factory.make_string("sha1")
+        sha2 = factory.make_string("sha2")
+        tag1 = factory.make_string("tag1")
+        tag2 = factory.make_string("tag2")
+
+        images = factory.get_response_template(
+            image_sha256=sha1, image_tag=tag1)
+        images.extend(
+            factory.get_response_template(image_sha256=sha2, image_tag=tag2))
+
+        expected = {
+            "sha256:{}".format(sha1): tag1,
+            "sha256:{}".format(sha2): tag2,
+        }
+
+        observed = api.all_image_ids(images)
+        self.assertThat(observed, Equals(expected))
