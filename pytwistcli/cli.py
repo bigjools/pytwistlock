@@ -22,6 +22,7 @@
 # pytwistcli image search <searchspec> [os|python|node|etc]
 
 import click
+import json
 
 from pytwistcli import api
 from pytwistcli import exceptions
@@ -81,7 +82,10 @@ def display_packages(display_type, images, search_spec):
 
     image_spec = _get_image_spec(search_spec)
     if display_type == 'list':
-        types = api.list_available_package_types(images, **image_spec)
+        try:
+            types = api.list_available_package_types(images, **image_spec)
+        except exceptions.ImageNotFound:
+            abort("No matching image found")
         if len(types) != 0:
             click.echo(" ".join(types))
         return
@@ -93,6 +97,8 @@ def display_packages(display_type, images, search_spec):
         pkgs = api.find_packages(display_type, images, **image_spec)
     except exceptions.NoPackages:
         abort("No packages found")
+    except exceptions.ImageNotFound:
+        abort("No matching image found")
 
     # Work out max column widths.
     name_w = max([len(pkg['name']) for pkg in pkgs])
@@ -121,7 +127,13 @@ def display_binaries(images, image_spec):
     :param images: Images data in json format.
     :param image_spec: dict as returned by _get_image_spec.
     """
-    binaries = api.find_binaries(images, **image_spec)
+    try:
+        binaries = api.find_binaries(images, **image_spec)
+    except exceptions.ImageNotFound:
+        abort("No matching image found")
+
+    if len(binaries) == 0:
+        return
 
     # Work out column width.
     path_w = max([len(binary['path']) for binary in binaries])
@@ -135,6 +147,16 @@ def display_binaries(images, image_spec):
             path=binary['path'], path_w=path_w,
             cveCount=binary['cveCount'],
         ))
+
+def _process_images(searchtype, images, searchspec):
+    if images is None:
+        return
+
+    display_packages(searchtype, images, searchspec)
+
+
+def _list_images(images):
+    click.echo(api.all_image_ids(images))
 
 
 @click.group()
@@ -151,17 +173,83 @@ def image():
 main.add_command(image)
 
 
+def _validate_image_params(ctx, expect_spec=False):
+    if ctx.params['list_images']:
+        return
+
+    searchspec = ctx.params.get('searchspec')
+    searchtype = ctx.params.get('searchtype')
+    if (searchspec is None and expect_spec) and searchtype is None:
+        raise click.BadParameter(
+            'SEARCHSPEC and SEARCHTYPE must be specified when not listing '
+            'images')
+
+
 @image.command()
 @click.option('--twistlock-url', envvar='TWISTLOCK_URL', required=True)
 @click.option('--twistlock-user', envvar='TWISTLOCK_USER', required=True)
 @click.option(
     '--twistlock-password', envvar='TWISTLOCK_PASSWORD', required=True)
 @click.argument('searchspec')
-@click.argument('searchtype', type=click.Choice(SUPPORTED_PACKAGE_TYPES))
+@click.argument(
+    'searchtype', type=click.Choice(SUPPORTED_PACKAGE_TYPES), required=False)
+@click.option('--list-images', is_flag=True, default=False)
 def search(
-    twistlock_url, twistlock_user, twistlock_password, searchspec,
-        searchtype):
+    twistlock_url, twistlock_user, twistlock_password, searchspec=None,
+        searchtype=None, list_images=False):
     """Examine images on a Twistlock server."""
+    if not list_images and searchspec is None:
+            raise click.BadParameter(
+                'SEARCHSPEC must be specified when not listing images')
+    try:
+        images = sources.search_remote(
+            twistlock_url,
+            userspec_from_params(twistlock_user, twistlock_password),
+            searchspec)
+    except Exception as e:
+        abort(e)
+
+    if list_images:
+        return _list_images(images)
+
+    return _process_images(searchtype, images, searchspec)
+
+
+@image.command()
+@click.argument('filename')
+@click.argument('searchspec', required=False)
+@click.argument(
+    'searchtype', type=click.Choice(SUPPORTED_PACKAGE_TYPES), required=False)
+@click.option('--list-images', is_flag=True, default=False)
+def file(filename, searchspec=None, searchtype=None, list_images=False):
+    """Examine images from a local file."""
+    if not list_images:
+        if searchtype is None or searchspec is None:
+            raise click.BadParameter(
+                'SEARCHTYPE and SEARCHSPEC must be specified when not listing '
+                'images')
+    try:
+        images = sources.read_images_file(filename)
+    except Exception as e:
+        abort(e)
+
+    if list_images:
+        return _list_images(images)
+
+    _process_images(searchtype, images, searchspec)
+
+
+@image.command()
+@click.option('--twistlock-url', envvar='TWISTLOCK_URL', required=True)
+@click.option('--twistlock-user', envvar='TWISTLOCK_USER', required=True)
+@click.option(
+    '--twistlock-password', envvar='TWISTLOCK_PASSWORD', required=True)
+@click.argument('searchspec')
+@click.argument('filename', type=click.File('w'))
+def save(
+    twistlock_url, twistlock_user, twistlock_password, searchspec,
+        filename):
+    """Download image scan results from a Twistlock server and save locally."""
     try:
         images = sources.search_remote(
             twistlock_url,
@@ -171,28 +259,9 @@ def search(
         abort(e)
 
     if images is None:
-        return
+        abort("No matching images")
 
-    if len(images) > 1:
-        click.echo("Multiple images match: {}".format(
-            api.all_image_ids(images)))
-        return
-
-    display_packages(searchtype, images, searchspec)
-
-
-@image.command()
-@click.argument('filename')
-@click.argument('image_id')
-@click.argument('searchtype', type=click.Choice(SUPPORTED_PACKAGE_TYPES))
-def file(filename, image_id, searchtype):
-    """Examine images from a local file."""
-    try:
-        images = sources.read_images_file(filename)
-    except Exception as e:
-        abort(e)
-
-    display_packages(searchtype, images, image_id)
+    json.dump(images, filename)
 
 
 if __name__ == '__main__':
