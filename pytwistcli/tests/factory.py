@@ -117,6 +117,7 @@ class Factory:
                 name=self.make_string(),
                 version=self.make_string(),
                 license=self.make_string(),
+                cveCount=random.randint(0, 10),  # nosec
             )
             packages.append(p)
         return packages

@@ -52,18 +52,23 @@ class TestCLI(PyTwistcliTestCase):
 
         p_sorted = sorted(packages, key=lambda t: t['name'])
         expected = textwrap.dedent("""\
-            NAME       VERSION    LICENSE
+            NAME       VERSION    CVE COUNT  LICENSE
             <BLANKLINE>
-            {} {} {}
-            {} {} {}
-            {} {} {}
+            {} {} {} {}
+            {} {} {} {}
+            {} {} {} {}
         """.format(
             p_sorted[0]['name'],
-            p_sorted[0]['version'], p_sorted[0]['license'],
+            p_sorted[0]['version'], p_sorted[0]['cveCount'],
+            p_sorted[0]['license'],
+
             p_sorted[1]['name'],
-            p_sorted[1]['version'], p_sorted[1]['license'],
+            p_sorted[1]['version'], p_sorted[1]['cveCount'],
+            p_sorted[1]['license'],
+
             p_sorted[2]['name'],
-            p_sorted[2]['version'], p_sorted[2]['license'],
+            p_sorted[2]['version'], p_sorted[2]['cveCount'],
+            p_sorted[2]['license'],
             ))
         u_out = out.decode('utf-8')
         self.assertThat(

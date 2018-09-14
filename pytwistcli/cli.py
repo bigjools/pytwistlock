@@ -104,20 +104,23 @@ def display_packages(display_type, images, search_spec):
     name_w = max([len(pkg['name']) for pkg in pkgs])
     ver_w = max([len(pkg['version']) for pkg in pkgs])
     license_w = max([len(pkg['license']) for pkg in pkgs])
+    cve_w = 9
 
     # Print heading.
     print('{name:<{name_w}} {version:<{ver_w}} '
-          '{license:<{license_w}}\n'.format(
+          '{cveCount:<{cve_w}} {license:<{license_w}}\n'.format(
             name='NAME', name_w=name_w,
             version='VERSION', ver_w=ver_w,
+            cveCount='CVE COUNT', cve_w=cve_w,
             license='LICENSE', license_w=license_w))
 
     # Print all packages.
     for pkg in sorted(pkgs, key=lambda t: t['name']):
         print('{name:<{name_w}} {version:<{ver_w}} '
-              '{license:<{license_w}}'.format(
+              '{cveCount:{cve_w}} {license:<{license_w}}'.format(
                 name=pkg['name'], name_w=name_w,
                 version=pkg['version'], ver_w=ver_w,
+                cveCount=pkg['cveCount'], cve_w=cve_w,
                 license=pkg['license'], license_w=license_w))
 
 
@@ -147,6 +150,7 @@ def display_binaries(images, image_spec):
             path=binary['path'], path_w=path_w,
             cveCount=binary['cveCount'],
         ))
+
 
 def _process_images(searchtype, images, searchspec):
     if images is None:
