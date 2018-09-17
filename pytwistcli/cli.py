@@ -43,6 +43,7 @@ def abort(error):
     raise click.Abort()
 
 
+# TODO: Map this into a Click sub-command
 SUPPORTED_PACKAGE_TYPES = [
     'binary',
     'gem',
@@ -55,6 +56,35 @@ SUPPORTED_PACKAGE_TYPES = [
     'list',  # Special type, lists available types in an image.
     'cves',  # Special type, lists CVEs in image.
 ]
+
+
+def format_output(data, columns):
+    """Send formatted output to stdout.
+
+    :param data: A list of dicts, one dict per output line. Each dict
+        contains the columns to output.
+    :param columns: A dict containing keys whose value is the key to
+        pull out of the data dicts, which maps to the heading for that
+        column in the output.
+    """
+    widths = {}
+    heading = ""
+    for column in columns:
+        if type(data[0][column]) is int:
+            # Just use heading width for int types.
+            width = len(columns[column])
+        else:
+            width = max([len(d[column]) for d in data])
+        widths[column] = width
+        heading += '{h:<{width}} '.format(h=columns[column], width=width)
+
+    print(heading + '\n')
+    for d in data:
+        line = ""
+        for column in columns:
+            line += '{item:<{width}} '.format(
+                item=d[column], width=widths[column])
+        print(line)
 
 
 def _get_image_spec(image_id):
@@ -104,28 +134,12 @@ def display_packages(display_type, images, search_spec):
     except exceptions.ImageNotFound:
         abort("No matching image found")
 
-    # Work out max column widths.
-    name_w = max([len(pkg['name']) for pkg in pkgs])
-    ver_w = max([len(pkg['version']) for pkg in pkgs])
-    license_w = max([len(pkg['license']) for pkg in pkgs])
-    cve_w = 9
-
-    # Print heading.
-    print('{name:<{name_w}} {version:<{ver_w}} '
-          '{cveCount:<{cve_w}} {license:<{license_w}}\n'.format(
-            name='NAME', name_w=name_w,
-            version='VERSION', ver_w=ver_w,
-            cveCount='CVE COUNT', cve_w=cve_w,
-            license='LICENSE', license_w=license_w))
-
-    # Print all packages.
-    for pkg in sorted(pkgs, key=lambda t: t['name']):
-        print('{name:<{name_w}} {version:<{ver_w}} '
-              '{cveCount:{cve_w}} {license:<{license_w}}'.format(
-                name=pkg['name'], name_w=name_w,
-                version=pkg['version'], ver_w=ver_w,
-                cveCount=pkg['cveCount'], cve_w=cve_w,
-                license=pkg['license'], license_w=license_w))
+    columns = {
+        'name': 'NAME',
+        'version': 'VERSION',
+        'license': 'LICENSE',
+    }
+    return format_output(pkgs, columns)
 
 
 def display_binaries(images, image_spec):
@@ -142,18 +156,11 @@ def display_binaries(images, image_spec):
     if len(binaries) == 0:
         return
 
-    # Work out column width.
-    path_w = max([len(binary['path']) for binary in binaries])
-
-    print('{path:<{path_w}} {cveCount:<10}\n'.format(
-        path='PATH', path_w=path_w,
-        cveCount='CVE COUNT',
-    ))
-    for binary in binaries:
-        print('{path:<{path_w}} {cveCount:<10}'.format(
-            path=binary['path'], path_w=path_w,
-            cveCount=binary['cveCount'],
-        ))
+    columns = {
+        'path': 'PATH',
+        'cveCount': 'CVE COUNT',
+    }
+    return format_output(binaries, columns)
 
 
 def display_cves(images, image_spec):
@@ -178,21 +185,7 @@ def display_cves(images, image_spec):
         'status': 'STATUS',
         'link': 'LINK',
     }
-
-    widths = {}
-    heading = ""
-    for column in columns:
-        width = max([len(cve[column]) for cve in cves])
-        widths[column] = width
-        heading += '{h:<{width}} '.format(h=columns[column], width=width)
-
-    print(heading + '\n')
-    for cve in cves:
-        line = ""
-        for column in columns:
-            line += '{item:<{width}} '.format(
-                item=cve[column], width=widths[column])
-        print(line)
+    format_output(cves, columns)
 
 
 def _process_images(searchtype, images, searchspec):
