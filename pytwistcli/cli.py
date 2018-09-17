@@ -75,6 +75,8 @@ def format_output(data, columns):
             width = len(columns[column])
         else:
             width = max([len(d[column]) for d in data])
+        # Width is the max of the column heading or the data itself.
+        width = max(width, len(columns[column]))
         widths[column] = width
         heading += '{h:<{width}} '.format(h=columns[column], width=width)
 
