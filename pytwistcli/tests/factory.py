@@ -47,7 +47,7 @@ response_template = string.Template('''
           },
           "complianceVulnerabilities": [],
           "allCompliance": {},
-          "cveVulnerabilities": [],
+          "cveVulnerabilities": ${cveVulnerabilities},
           "data": {
               "binaries": ${binaries},
               "packages": [
@@ -77,7 +77,26 @@ _template_args = {
     'image_sha256': None,
     'image_tag': None,
 }
-_template_empty_list_defaults = ('package', 'binaries')
+_template_empty_list_defaults = ('package', 'binaries', 'cveVulnerabilities')
+
+VULN_ID_CHOICES = (
+    # Taken directly from Twistlock API docs at
+    # https://docs.twistlock.com/docs/latest/api/api_reference.html#images_get
+    "46",
+    "47",
+    "48",
+    "49",
+    "410",
+    "411",
+    "412",
+    "413",
+)
+VULN_SEVERITY_CHOICES = (
+    "Critical",
+    "High",
+    "Medium",
+    "Low",
+)
 
 
 class Factory:
@@ -100,7 +119,6 @@ class Factory:
                 template_args[key] = kwargs[key]
 
         # Special cases where defaults must be an empty list.
-        _template_empty_list_defaults = ('package', 'binaries')
         for default in _template_empty_list_defaults:
             if default in kwargs:
                 template_args[default] = json.dumps(kwargs[default])
@@ -134,6 +152,25 @@ class Factory:
             binaries.append(b)
         return binaries
 
+    def make_cvevulnerabilities_list(self, num_vulns=3):
+        vulns = []
+        for i in range(0, num_vulns):
+            v = dict(
+                text=self.make_string("text"),
+                id=random.choice(VULN_ID_CHOICES),  # nosec
+                severity=random.choice(VULN_SEVERITY_CHOICES),  # nosec
+                cvss=random.randint(0, 10),  # nosec
+                status=self.make_string("status"),
+                cve=self.make_string("CVE-"),
+                description=self.make_string("description"),
+                link=self.make_string("link"),
+                type="image",
+                packageName=self.make_string("packagename"),
+                packageVersion=self.make_string("packageversion"),
+            )
+            vulns.append(v)
+        return vulns
+
     def make_image_with_os_packages(self, num_packages=3):
         tag = self.make_string("tag")
         packages = self.make_package_list(num_packages)
@@ -145,6 +182,13 @@ class Factory:
         binaries = self.make_binaries_list(num_binaries)
         images = self.get_response_template(image_tag=tag, binaries=binaries)
         return images, tag, binaries
+
+    def make_image_with_vulnerabilities(self, num_vulns=3):
+        tag = self.make_string("tag")
+        vulns = self.make_cvevulnerabilities_list(num_vulns)
+        images = self.get_response_template(
+            image_tag=tag, cveVulnerabilities=vulns)
+        return images, tag, vulns
 
 
 # Factory is a singleton.

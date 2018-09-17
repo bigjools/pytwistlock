@@ -52,7 +52,8 @@ SUPPORTED_PACKAGE_TYPES = [
     'python',
     'windows',
 
-    'list'  # Special type, lists available types in an image.
+    'list',  # Special type, lists available types in an image.
+    'cves',  # Special type, lists CVEs in image.
 ]
 
 
@@ -92,6 +93,9 @@ def display_packages(display_type, images, search_spec):
 
     if display_type == 'binary':
         return display_binaries(images, image_spec)
+
+    if display_type == 'cves':
+        return display_cves(images, image_spec)
 
     try:
         pkgs = api.find_packages(display_type, images, **image_spec)
@@ -150,6 +154,45 @@ def display_binaries(images, image_spec):
             path=binary['path'], path_w=path_w,
             cveCount=binary['cveCount'],
         ))
+
+
+def display_cves(images, image_spec):
+    """Print to stdout the CVEs for an image.
+
+    :param images: Images data in json format.
+    :param image_spec: dict as returned by _get_image_spec
+    """
+    try:
+        cves = api.find_cves(images, **image_spec)
+    except exceptions.ImageNotFound:
+        abort("No matching image found")
+
+    if len(cves) == 0:
+        return
+
+    columns = {
+        'packageName': 'PACKAGE',
+        'packageVersion': 'VERSION',
+        'cve': 'CVE',
+        'severity': 'SEVERITY',
+        'status': 'STATUS',
+        'link': 'LINK',
+    }
+
+    widths = {}
+    heading = ""
+    for column in columns:
+        width = max([len(cve[column]) for cve in cves])
+        widths[column] = width
+        heading += '{h:<{width}} '.format(h=columns[column], width=width)
+
+    print(heading + '\n')
+    for cve in cves:
+        line = ""
+        for column in columns:
+            line += '{item:<{width}} '.format(
+                item=cve[column], width=widths[column])
+        print(line)
 
 
 def _process_images(searchtype, images, searchspec):

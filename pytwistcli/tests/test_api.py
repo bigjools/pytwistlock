@@ -111,3 +111,9 @@ class TestAPI(PyTwistcliTestCase):
 
         observed = api.all_image_ids(images)
         self.assertThat(observed, Equals(expected))
+
+    def test_find_cves_returns_cves_for_image(self):
+        image, tag, vulns = self.factory.make_image_with_vulnerabilities(
+            num_vulns=3)
+        observered_vulns = api.find_cves(image, image_tag=tag)
+        self.assertThat(observered_vulns, Equals(vulns))

@@ -135,3 +135,24 @@ def list_available_package_types(*args, **kwargs):
     :params: See `find_image`
     """
     return [pkg_dict['pkgsType'] for pkg_dict in all_packages(*args, **kwargs)]
+
+
+def find_cves(*args, **kwargs):
+    """Given images data, return a list of dicts containing details of
+    all CVEs in the image which can be identified with image_id or
+    image_tag.
+
+    One of image_id or image_tag must be specified.
+
+    :params: See `find_image`
+    :exception: exceptions.ImageNotFound
+    :exception: exceptions.ParameterError
+
+    :return: A list of dicts:
+
+    Refer to the Twistlock API documentation for details of the dict. See:
+    https://docs.twistlock.com/docs/latest/api/api_reference.html#images_get
+     ->   "cveVulnerabilities"
+    """
+    image = find_image(*args, **kwargs)
+    return image['cveVulnerabilities']
