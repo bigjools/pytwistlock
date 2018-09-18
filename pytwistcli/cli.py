@@ -176,7 +176,7 @@ def display_cves(images, image_spec):
     except exceptions.ImageNotFound:
         abort("No matching image found")
 
-    if len(cves) == 0:
+    if cves is None or len(cves) == 0:
         return
 
     columns = {
