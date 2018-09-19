@@ -58,7 +58,7 @@ SUPPORTED_SEARCH_TYPES = [
 ]
 
 
-def format_output(data, columns):
+def format_output(data, columns, sort_by):
     """Send formatted output to stdout.
 
     :param data: A list of dicts, one dict per output line. Each dict
@@ -66,10 +66,15 @@ def format_output(data, columns):
     :param columns: A dict containing keys whose value is the key to
         pull out of the data dicts, which maps to the heading for that
         column in the output.
+    :param sort_by: Which dict key by which to sort the rows
     """
+    if sort_by not in columns:
+        abort("Invalid field for sorting: {}".format(sort_by))
     widths = {}
     heading = ""
     for column in columns:
+        if column not in data[0]:
+            abort("{} is not a valid field".format(column))
         if type(data[0][column]) is int:
             # Just use heading width for int types.
             width = len(columns[column])
@@ -81,12 +86,21 @@ def format_output(data, columns):
         heading += '{h:<{width}} '.format(h=columns[column], width=width)
 
     print(heading + '\n')
-    for d in data:
+    for d in sorted(data, key=lambda key: key[sort_by]):
         line = ""
         for column in columns:
             line += '{item:<{width}} '.format(
                 item=d[column], width=widths[column])
         print(line)
+
+
+def _get_columns_from_fields(fields, default_columns):
+    if not fields:
+        return default_columns
+    columns = {}
+    for field in fields:
+        columns[field] = field.upper()
+    return columns
 
 
 def _get_image_spec(image_id):
@@ -101,7 +115,7 @@ def _get_image_spec(image_id):
     return image_spec
 
 
-def display_packages(display_type, images, search_spec):
+def display_packages(display_type, images, search_spec, sort_by, fields):
     """Print to stdout package information.
 
     :param display_type: One of the supported search type
@@ -110,6 +124,9 @@ def display_packages(display_type, images, search_spec):
     :param images: Images data in json format.
     :param search_spec: Any search criteria as recognised by the Twistlock
         server.
+    :param sort_by: field in `fields` by which to sort the output
+    :param fields: List of fields to display - must be keys in the package
+        data.
     """
     if display_type not in SUPPORTED_SEARCH_TYPES:
         types = " ".join(SUPPORTED_SEARCH_TYPES)
@@ -127,10 +144,10 @@ def display_packages(display_type, images, search_spec):
         return
 
     if display_type == 'binary':
-        return display_binaries(images, image_spec)
+        return display_binaries(images, image_spec, sort_by, fields)
 
     if display_type == 'cves':
-        return display_cves(images, image_spec)
+        return display_cves(images, image_spec, sort_by, fields)
 
     try:
         pkgs = api.find_packages(display_type, images, **image_spec)
@@ -139,19 +156,26 @@ def display_packages(display_type, images, search_spec):
     except exceptions.ImageNotFound:
         abort("No matching image found")
 
-    columns = {
+    default_columns = {
         'name': 'NAME',
         'version': 'VERSION',
         'license': 'LICENSE',
     }
-    return format_output(pkgs, columns)
+    columns = _get_columns_from_fields(fields, default_columns)
+
+    if sort_by is None:
+        sort_by = 'name'
+    return format_output(pkgs, columns, sort_by)
 
 
-def display_binaries(images, image_spec):
+def display_binaries(images, image_spec, sort_by, fields):
     """Print to stdout the binaries for an image.
 
     :param images: Images data in json format.
     :param image_spec: dict as returned by _get_image_spec.
+    :param sort_by: field in `fields` by which to sort the output
+    :param fields: List of fields to display - must be keys in the package
+        data.
     """
     try:
         binaries = api.find_binaries(images, **image_spec)
@@ -161,18 +185,24 @@ def display_binaries(images, image_spec):
     if len(binaries) == 0:
         return
 
-    columns = {
+    default_columns = {
         'path': 'PATH',
         'cveCount': 'CVE COUNT',
     }
-    return format_output(binaries, columns)
+    columns = _get_columns_from_fields(fields, default_columns)
+    if sort_by is None:
+        sort_by = 'path'
+    return format_output(binaries, columns, sort_by)
 
 
-def display_cves(images, image_spec):
+def display_cves(images, image_spec, sort_by, fields):
     """Print to stdout the CVEs for an image.
 
     :param images: Images data in json format.
     :param image_spec: dict as returned by _get_image_spec
+    :param sort_by: field in `fields` by which to sort the output
+    :param fields: List of fields to display - must be keys in the package
+        data.
     """
     try:
         cves = api.find_cves(images, **image_spec)
@@ -182,7 +212,7 @@ def display_cves(images, image_spec):
     if cves is None or len(cves) == 0:
         return
 
-    columns = {
+    default_columns = {
         'packageName': 'PACKAGE',
         'packageVersion': 'VERSION',
         'cve': 'CVE',
@@ -190,14 +220,17 @@ def display_cves(images, image_spec):
         'status': 'STATUS',
         'link': 'LINK',
     }
-    format_output(cves, columns)
+    columns = _get_columns_from_fields(fields, default_columns)
+    if sort_by is None:
+        sort_by = 'packageName'
+    format_output(cves, columns, sort_by)
 
 
-def _process_images(searchtype, images, searchspec):
+def _process_images(searchtype, images, searchspec, sort_by, fields):
     if images is None:
         return
 
-    display_packages(searchtype, images, searchspec)
+    display_packages(searchtype, images, searchspec, sort_by, fields)
 
 
 def _list_images(images):
@@ -218,6 +251,15 @@ def image():
 main.add_command(image)
 
 
+def add_options(options):
+    """Decorator to add a list of options."""
+    def _add_options(func):
+        for option in reversed(options):
+            func = option(func)
+        return func
+    return _add_options
+
+
 def _validate_image_params(ctx, expect_spec=False):
     if ctx.params['list_images']:
         return
@@ -230,7 +272,7 @@ def _validate_image_params(ctx, expect_spec=False):
             'images')
 
 
-_twistlock_server_options = [
+twistlock_server_options = [
     click.option('--twistlock-url', envvar='TWISTLOCK_URL', required=True),
     click.option('--twistlock-user', envvar='TWISTLOCK_USER', required=True),
     click.option(
@@ -238,21 +280,22 @@ _twistlock_server_options = [
 ]
 
 
-def twistlock_server_options(func):
-    for option in reversed(_twistlock_server_options):
-        func = option(func)
-    return func
+format_options = [
+    click.option('--sort-by'),
+    click.option('--field', '-f', 'fields', multiple=True),
+]
 
 
 @image.command()
-@twistlock_server_options
+@add_options(twistlock_server_options)
 @click.argument('searchspec')
 @click.argument(
     'searchtype', type=click.Choice(SUPPORTED_SEARCH_TYPES), required=False)
 @click.option('--list-images', is_flag=True, default=False)
+@add_options(format_options)
 def search(
     twistlock_url, twistlock_user, twistlock_password, searchspec=None,
-        searchtype=None, list_images=False):
+        searchtype=None, list_images=False, sort_by=None, fields=None):
     """Examine images on a Twistlock server."""
     if not list_images and searchspec is None:
             raise click.BadParameter(
@@ -268,7 +311,7 @@ def search(
     if list_images:
         return _list_images(images)
 
-    return _process_images(searchtype, images, searchspec)
+    return _process_images(searchtype, images, searchspec, sort_by, fields)
 
 
 @image.command()
@@ -277,6 +320,7 @@ def search(
 @click.argument(
     'searchtype', type=click.Choice(SUPPORTED_SEARCH_TYPES), required=False)
 @click.option('--list-images', is_flag=True, default=False)
+@add_options(format_options)
 def file(filename, searchspec=None, searchtype=None, list_images=False):
     """Examine images from a local file."""
     if not list_images:
@@ -296,7 +340,7 @@ def file(filename, searchspec=None, searchtype=None, list_images=False):
 
 
 @image.command()
-@twistlock_server_options
+@add_options(twistlock_server_options)
 @click.argument('searchspec')
 @click.argument('filename', type=click.File('w'))
 def save(
