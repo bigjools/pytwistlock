@@ -13,6 +13,47 @@ as returned from the [Images API].
 [Twistlock]: https://www.twistlock.com/
 [Images API]: https://docs.twistlock.com/docs/latest/api/api_reference.html#images_get
 
+## Basic CLI format
+The current CLI takes the form:
+```sh
+pytwistcli image [search|file|save]
+```
+The `search` sub-command interrogates the Twistlock console.
+The `file` sub command interrogates a local copy of the Twistlock image
+data.
+The `save` sub-command downloads data from the Twistlock console and
+saves to a local file for later perusal with the `file` command.
+
+When searching the console directly, the command takes the form:
+```sh
+pytwistcli image search <search spec> <searchtype>
+```
+Search spec is anything that the console recognises as a search string,
+but pytwistcli currently only recognises the image digest (starting with
+the prefix `sha256:`) or an image tag.
+
+When searching the server you need to tell pytwistcli the server
+details. You can do this in two different ways:
+
+ - Pass CLI options `--twistlock-url`, `--twistlock-user` and
+   `--twistlock-password`, or,
+ - Set environment variarbles `TWISTLOCK_URL`, `TWISTLOCK_PASSWORD`, and
+   `TWISTLOCK_USER`
+
+Similarly the file search takes the same parameters with the addition of
+the file name:
+
+```sh
+pytwistcli file <filename> <search spec> <searchtype>
+```
+
+The `searchtype` argument can be one of the recognised Twistlock package
+types (e.g. "package" for OS packages, "python" for Python packages), or
+one of:
+
+ - `cves`: Lists all the CVEs for the image
+ - `list`: Shows all the package types that are in the image
+
 ## Examples
 
  ```sh
@@ -44,14 +85,6 @@ as returned from the [Images API].
 
  Will search the Twistlock server directly for the container with tag `myproject/container:latest` and return its nodejs packages.
 
-When searching the server you need to tell pytwistcli the server
-details. You can do this in two different ways:
-
- - Pass CLI options `--twistlock-url`, `--twistlock-user` and
-   `--twistlock-password`, or,
- - Set environment variarbles `TWISTLOCK_URL`, `TWISTLOCK_PASSWORD`, and
-   `TWISTLOCK_USER`
-
  ```sh
  pytwistcli image save data.json myproject/container:latest
  ```
@@ -68,6 +101,20 @@ details. You can do this in two different ways:
  Will show all images either in a file or on the server that match the
  search spec.
 
+## Field selection and sorting
+
+To sort the output, pass `--sort-by <fieldname>`. If the field does
+not exist in the data being selecte, you will get an error.
+
+You can also pass `-f <fieldname>` or `--field <fieldname>` multiple
+times to select which fields from the data to display.
+
+Example:
+```sh
+pytwistcli image search console_2_5_102 binary --sort-by cveCount -f cveCount -f path
+```
+shows the packages with CVEs from Twistlock's own console image, sorted by the CVE
+count.
 
 ## Running tests
 `tox`
