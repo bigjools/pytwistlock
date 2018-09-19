@@ -230,11 +230,22 @@ def _validate_image_params(ctx, expect_spec=False):
             'images')
 
 
+_twistlock_server_options = [
+    click.option('--twistlock-url', envvar='TWISTLOCK_URL', required=True),
+    click.option('--twistlock-user', envvar='TWISTLOCK_USER', required=True),
+    click.option(
+        '--twistlock-password', envvar='TWISTLOCK_PASSWORD', required=True),
+]
+
+
+def twistlock_server_options(func):
+    for option in reversed(_twistlock_server_options):
+        func = option(func)
+    return func
+
+
 @image.command()
-@click.option('--twistlock-url', envvar='TWISTLOCK_URL', required=True)
-@click.option('--twistlock-user', envvar='TWISTLOCK_USER', required=True)
-@click.option(
-    '--twistlock-password', envvar='TWISTLOCK_PASSWORD', required=True)
+@twistlock_server_options
 @click.argument('searchspec')
 @click.argument(
     'searchtype', type=click.Choice(SUPPORTED_SEARCH_TYPES), required=False)
@@ -285,10 +296,7 @@ def file(filename, searchspec=None, searchtype=None, list_images=False):
 
 
 @image.command()
-@click.option('--twistlock-url', envvar='TWISTLOCK_URL', required=True)
-@click.option('--twistlock-user', envvar='TWISTLOCK_USER', required=True)
-@click.option(
-    '--twistlock-password', envvar='TWISTLOCK_PASSWORD', required=True)
+@twistlock_server_options
 @click.argument('searchspec')
 @click.argument('filename', type=click.File('w'))
 def save(
