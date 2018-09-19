@@ -44,7 +44,7 @@ def abort(error):
 
 
 # TODO: Map this into a Click sub-command
-SUPPORTED_PACKAGE_TYPES = [
+SUPPORTED_SEARCH_TYPES = [
     'binary',
     'gem',
     'jar',
@@ -104,14 +104,17 @@ def _get_image_spec(image_id):
 def display_packages(display_type, images, search_spec):
     """Print to stdout package information.
 
-    :param display_type: One of the Twistlock supported package type
-        specifiers. See cli.SUPPORTED_PACKAGE_TYPES.
+    :param display_type: One of the supported search type
+        specifiers. See cli.SUPPORTED_SEARCH_TYPES.
+        e.g 'package' will display OS packages.
     :param images: Images data in json format.
     :param search_spec: Any search criteria as recognised by the Twistlock
         server.
     """
-    if display_type not in SUPPORTED_PACKAGE_TYPES:
-        abort("{} is not a valid package type".format(display_type))
+    if display_type not in SUPPORTED_SEARCH_TYPES:
+        types = " ".join(SUPPORTED_SEARCH_TYPES)
+        abort("{} is not a valid search type, require one of: {}".format(
+            display_type, types))
 
     image_spec = _get_image_spec(search_spec)
     if display_type == 'list':
@@ -234,7 +237,7 @@ def _validate_image_params(ctx, expect_spec=False):
     '--twistlock-password', envvar='TWISTLOCK_PASSWORD', required=True)
 @click.argument('searchspec')
 @click.argument(
-    'searchtype', type=click.Choice(SUPPORTED_PACKAGE_TYPES), required=False)
+    'searchtype', type=click.Choice(SUPPORTED_SEARCH_TYPES), required=False)
 @click.option('--list-images', is_flag=True, default=False)
 def search(
     twistlock_url, twistlock_user, twistlock_password, searchspec=None,
@@ -261,7 +264,7 @@ def search(
 @click.argument('filename')
 @click.argument('searchspec', required=False)
 @click.argument(
-    'searchtype', type=click.Choice(SUPPORTED_PACKAGE_TYPES), required=False)
+    'searchtype', type=click.Choice(SUPPORTED_SEARCH_TYPES), required=False)
 @click.option('--list-images', is_flag=True, default=False)
 def file(filename, searchspec=None, searchtype=None, list_images=False):
     """Examine images from a local file."""
