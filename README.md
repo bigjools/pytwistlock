@@ -145,4 +145,17 @@ If setup.py or setup.cfg changes, re-build the spec file with:
 ```sh
 python setup.py bdist_rpm --spec-only
 ```
+## TODO - development!
+There's a ton of improvements that can yet be made, this is currently a
+bit of a PoC and very much a WIP. The API is not in any use other than
+the CLI, so the CLI has had more attention. The API design needs some
+love.
 
+Some ideas for change:
+ - Add more top-level API commands
+ - Create objects representing parts of the data and expose on the
+   public API
+ - Make the API a little more object-orientated and nest those objects
+   like the CLI is doing.
+ - The CLI is missing a ton of unit tests
+ - Move the CLI's sorting feature into the API
