@@ -159,6 +159,7 @@ def display_packages(display_type, images, search_spec, sort_by, fields):
     default_columns = {
         'name': 'NAME',
         'version': 'VERSION',
+        'cveCount': 'CVE COUNT',
         'license': 'LICENSE',
     }
     columns = _get_columns_from_fields(fields, default_columns)
@@ -321,7 +322,8 @@ def search(
     'searchtype', type=click.Choice(SUPPORTED_SEARCH_TYPES), required=False)
 @click.option('--list-images', is_flag=True, default=False)
 @add_options(format_options)
-def file(filename, searchspec=None, searchtype=None, list_images=False):
+def file(filename, searchspec=None, searchtype=None, list_images=False,
+         sort_by=None, fields=None):
     """Examine images from a local file."""
     if not list_images:
         if searchtype is None or searchspec is None:
@@ -336,7 +338,7 @@ def file(filename, searchspec=None, searchtype=None, list_images=False):
     if list_images:
         return _list_images(images)
 
-    _process_images(searchtype, images, searchspec)
+    _process_images(searchtype, images, searchspec, sort_by, fields)
 
 
 @image.command()
