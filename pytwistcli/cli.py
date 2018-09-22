@@ -66,8 +66,13 @@ def format_output(data, columns, sort_by):
     :param columns: A dict containing keys whose value is the key to
         pull out of the data dicts, which maps to the heading for that
         column in the output.
-    :param sort_by: Which dict key by which to sort the rows
+    :param sort_by: Which dict key by which to sort the rows. If
+        preceded by a minus '-' sign, sorting is reversed.
     """
+    reverse = False
+    if sort_by.startswith('-'):
+        reverse = True
+        sort_by = sort_by[1:]
     if sort_by not in columns:
         abort("Invalid field for sorting: {}".format(sort_by))
     widths = {}
@@ -86,7 +91,7 @@ def format_output(data, columns, sort_by):
         heading += '{h:<{width}} '.format(h=columns[column], width=width)
 
     print(heading + '\n')
-    for d in sorted(data, key=lambda key: key[sort_by]):
+    for d in sorted(data, key=lambda key: key[sort_by], reverse=reverse):
         line = ""
         for column in columns:
             line += '{item:<{width}} '.format(
