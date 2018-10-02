@@ -22,7 +22,10 @@
 # pytwistcli image search <searchspec> [os|python|node|etc]
 
 import click
+import docker
 import json
+import shlex
+import subprocess  # nosec
 
 from pytwistcli import api
 from pytwistcli import exceptions
@@ -115,8 +118,12 @@ def _get_image_spec(image_id):
     if image_id.startswith(ID_PREFIX):
         image_id = image_id.split(':', 1)[1]
         image_spec['image_sha'] = image_id
-    else:
-        image_spec['image_tag'] = image_id
+        return image_spec
+
+    # If the ID is of the form "container:tag", split off the tag:
+    if ':' in image_id:
+        image_id = image_id.split(':', 1)[1]
+    image_spec['image_tag'] = image_id
     return image_spec
 
 
@@ -292,17 +299,11 @@ format_options = [
 ]
 
 
-@image.command()
-@add_options(twistlock_server_options)
-@click.argument('searchspec')
-@click.argument(
-    'searchtype', type=click.Choice(SUPPORTED_SEARCH_TYPES), required=False)
-@click.option('--list-images', is_flag=True, default=False)
-@add_options(format_options)
-def search(
+def _search(
     twistlock_url, twistlock_user, twistlock_password, searchspec=None,
         searchtype=None, list_images=False, sort_by=None, fields=None):
-    """Examine images on a Twistlock server."""
+    # Internal search function as click decorated function cannot be
+    # called internally.
     if not list_images and searchspec is None:
             raise click.BadParameter(
                 'SEARCHSPEC must be specified when not listing images')
@@ -318,6 +319,22 @@ def search(
         return _list_images(images)
 
     return _process_images(searchtype, images, searchspec, sort_by, fields)
+
+
+@image.command()
+@add_options(twistlock_server_options)
+@click.argument('searchspec')
+@click.argument(
+    'searchtype', type=click.Choice(SUPPORTED_SEARCH_TYPES), required=False)
+@click.option('--list-images', is_flag=True, default=False)
+@add_options(format_options)
+def search(
+    twistlock_url, twistlock_user, twistlock_password, searchspec=None,
+        searchtype=None, list_images=False, sort_by=None, fields=None):
+    """Examine images on a Twistlock server."""
+    return _search(
+        twistlock_url, twistlock_user, twistlock_password,
+        searchspec, searchtype, list_images, sort_by, fields)
 
 
 @image.command()
@@ -366,6 +383,55 @@ def save(
         abort("No matching images")
 
     json.dump(images, filename)
+
+
+@image.command()
+@add_options(twistlock_server_options)
+@click.argument('image_id')
+def upload(
+        twistlock_url, twistlock_user, twistlock_password, image_id,
+        search=False):
+    """Find a local Docker image, upload it to Twistlock, and report the
+    sha256 ID."""
+    # See if the twistcli binary is available.
+    try:
+        which = subprocess.run(  # nosec
+            "which twistcli", check=True, shell=True,  # nosec
+            stdout=subprocess.PIPE, universal_newlines=True)  # nosec
+    except subprocess.CalledProcessError as e:
+        abort(e)
+    twistcli = which.stdout.strip()
+
+    d_client = docker.from_env()
+    try:
+        image = d_client.images.get(image_id)
+    except docker.errors.ImageNotFound:
+        abort("{} not found".format(image_id))
+    except docker.errors.APIError as e:
+        abort(e)
+    except Exception as e:
+        abort(e)
+
+    # Save the user from Twistlock stupidity.
+    if twistlock_url.endswith('/'):
+        twistlock_url = twistlock_url.rstrip('/')
+
+    cmd = (
+        "{twistcli} images scan --address {url} -u {user} -p {password} "
+        "{image_id} --include-package-files".format(
+            twistcli=twistcli,
+            url=shlex.quote(twistlock_url),
+            user=shlex.quote(twistlock_user),
+            password=shlex.quote(twistlock_password).strip("'"),
+            image_id=image.id))
+    try:
+        subprocess.run(cmd.split(), check=True)  # nosec
+    except FileNotFoundError:
+        abort("twistcli executable not found, is it on your PATH?")
+    except subprocess.CalledProcessError as e:
+        abort(e)
+
+    click.echo(image.id)
 
 
 if __name__ == '__main__':

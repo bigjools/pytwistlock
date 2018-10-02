@@ -50,7 +50,7 @@ def search_remote(remote_url, user_spec, search_spec):
         raise exceptions.ParameterError(
             "user_spec must contain username and password")
 
-    url_template = '{baseurl}/api/v1/images?search={searchspec}'
+    url_template = '{baseurl}/api/v1/scans?id={searchspec}&offset=0&limit=1'
     url = url_template.format(baseurl=remote_url, searchspec=search_spec)
     reply = requests.get(
         url, auth=(user_spec['username'], user_spec['password']))
